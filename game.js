@@ -76,6 +76,11 @@ class Food {
 
 class Game {
     constructor() {
+        this.initGame();
+        this.setupEventListeners();
+    }
+
+    initGame() {
         this.canvas = document.getElementById('gameCanvas');
         // 生成随机画布尺寸
         const randomWidth = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
@@ -93,9 +98,8 @@ class Game {
         this.score = 0;
         this.gameOver = false;
 
-        this.setupEventListeners();
+        document.getElementById('score').textContent = '0';
         this.food.generate(this.width, this.height, this.snake);
-        this.gameLoop();
     }
 
     setupEventListeners() {
@@ -115,10 +119,39 @@ class Game {
                     break;
             }
         });
+
+        document.getElementById('restartButton').addEventListener('click', () => {
+            this.restart();
+        });
+
+        this.startGameLoop();
+    }
+
+    restart() {
+        this.initGame();
+        if (!this.gameLoopRunning) {
+            this.startGameLoop();
+        }
+    }
+
+    startGameLoop() {
+        this.gameLoopRunning = true;
+        this.gameLoop();
+    }
+
+    gameLoop() {
+        if (!this.gameLoopRunning) return;
+        
+        this.update();
+        this.draw();
+        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 100);
     }
 
     update() {
-        if (this.gameOver) return;
+        if (this.gameOver) {
+            this.gameLoopRunning = false;
+            return;
+        }
 
         const tail = this.snake.move();
         
@@ -165,12 +198,6 @@ class Game {
             this.ctx.textAlign = 'center';
             this.ctx.fillText('游戏结束!', this.canvas.width / 2, this.canvas.height / 2);
         }
-    }
-
-    gameLoop() {
-        this.update();
-        this.draw();
-        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 100);
     }
 }
 
