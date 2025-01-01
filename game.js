@@ -78,6 +78,43 @@ class Game {
     constructor() {
         this.initGame();
         this.setupEventListeners();
+        this.generateQRCode();
+    }
+
+    generateQRCode() {
+        // 等待一小段时间确保库加载完成
+        setTimeout(() => {
+            try {
+                // 确保 QRCode 已定义
+                if (typeof QRCode === 'undefined') {
+                    console.error('QRCode library not loaded');
+                    return;
+                }
+
+                // 获取当前页面URL
+                const currentUrl = window.location.href;
+                
+                // 清除可能存在的旧二维码
+                const qrcodeElement = document.getElementById("qrcode");
+                if (!qrcodeElement) {
+                    console.error('QR code element not found');
+                    return;
+                }
+                qrcodeElement.innerHTML = '';
+                
+                // 创建QR码
+                new QRCode(qrcodeElement, {
+                    text: currentUrl,
+                    width: 128,
+                    height: 128,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+            }
+        }, 500); // 等待500毫秒确保库加载完成
     }
 
     initGame() {
