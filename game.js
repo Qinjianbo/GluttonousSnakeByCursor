@@ -3,10 +3,18 @@ class Snake {
         this.reset();
     }
 
-    reset() {
-        this.position = [{ x: 10, y: 10 }];
-        this.direction = 'right';
-        this.nextDirection = 'right';
+    reset(width, height) {
+        // 确保蛇的初始位置不会太靠近边界
+        const margin = 5;
+        const x = Math.floor(Math.random() * (width - 2 * margin)) + margin;
+        const y = Math.floor(Math.random() * (height - 2 * margin)) + margin;
+        
+        this.position = [{ x, y }];
+        
+        // 随机选择初始方向
+        const directions = ['up', 'down', 'left', 'right'];
+        this.direction = directions[Math.floor(Math.random() * directions.length)];
+        this.nextDirection = this.direction;
     }
 
     move() {
@@ -131,6 +139,9 @@ class Game {
         this.height = this.canvas.height / this.gridSize;
         
         this.snake = new Snake();
+        // 传入网格宽度和高度来初始化蛇的位置
+        this.snake.reset(this.width, this.height);
+        
         this.food = new Food();
         this.score = 0;
         this.gameOver = false;
