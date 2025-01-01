@@ -77,6 +77,12 @@ class Food {
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
+        // 生成随机画布尺寸
+        const randomWidth = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        const randomHeight = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        this.canvas.width = randomWidth;
+        this.canvas.height = randomHeight;
+        
         this.ctx = this.canvas.getContext('2d');
         this.gridSize = 20;
         this.width = this.canvas.width / this.gridSize;
