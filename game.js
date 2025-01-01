@@ -139,12 +139,12 @@ class Game {
         this.height = this.canvas.height / this.gridSize;
         
         this.snake = new Snake();
-        // 传入网格宽度和高度来初始化蛇的位置
         this.snake.reset(this.width, this.height);
         
         this.food = new Food();
         this.score = 0;
         this.gameOver = false;
+        this.isPaused = false;
 
         document.getElementById('score').textContent = '0';
         this.food.generate(this.width, this.height, this.snake);
@@ -152,6 +152,8 @@ class Game {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => {
+            if (this.isPaused && e.key !== 'Escape') return;
+            
             switch (e.key) {
                 case 'ArrowUp':
                     if (this.snake.direction !== 'down') this.snake.nextDirection = 'up';
@@ -165,7 +167,14 @@ class Game {
                 case 'ArrowRight':
                     if (this.snake.direction !== 'left') this.snake.nextDirection = 'right';
                     break;
+                case 'Escape':
+                    this.togglePause();
+                    break;
             }
+        });
+
+        this.canvas.addEventListener('click', () => {
+            this.togglePause();
         });
 
         document.getElementById('restartButton').addEventListener('click', () => {
@@ -175,8 +184,19 @@ class Game {
         this.startGameLoop();
     }
 
+    togglePause() {
+        if (this.gameOver) return;
+        
+        this.isPaused = !this.isPaused;
+        if (!this.isPaused) {
+            this.startGameLoop();
+        }
+        this.draw(); // 立即重绘以显示/隐藏暂停信息
+    }
+
     restart() {
         this.initGame();
+        this.isPaused = false;
         if (!this.gameLoopRunning) {
             this.startGameLoop();
         }
@@ -188,7 +208,7 @@ class Game {
     }
 
     gameLoop() {
-        if (!this.gameLoopRunning) return;
+        if (!this.gameLoopRunning || this.isPaused) return;
         
         this.update();
         this.draw();
@@ -196,7 +216,7 @@ class Game {
     }
 
     update() {
-        if (this.gameOver) {
+        if (this.gameOver || this.isPaused) {
             this.gameLoopRunning = false;
             return;
         }
@@ -240,11 +260,17 @@ class Game {
             this.gridSize - 1
         );
 
+        // 绘制游戏状态文本
+        this.ctx.font = '30px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = 'black';
+        
         if (this.gameOver) {
-            this.ctx.fillStyle = 'black';
-            this.ctx.font = '30px Arial';
-            this.ctx.textAlign = 'center';
             this.ctx.fillText('游戏结束!', this.canvas.width / 2, this.canvas.height / 2);
+        } else if (this.isPaused) {
+            this.ctx.fillText('游戏暂停', this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.font = '20px Arial';
+            this.ctx.fillText('点击继续', this.canvas.width / 2, this.canvas.height / 2 + 40);
         }
     }
 }
