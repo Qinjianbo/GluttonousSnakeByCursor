@@ -61,12 +61,23 @@ class Food {
             'yellow': 2,
             'blue': 3
         };
+        this.images = {
+            'red': new Image(),
+            'yellow': new Image(),
+            'blue': new Image()
+        };
+        // 设置图片源
+        this.images.red.src = 'images/apple.png';
+        this.images.yellow.src = 'images/banana.png';
+        this.images.blue.src = 'images/blueberry.png';
     }
 
     generate(width, height, snake) {
+        // 确保食物生成在画布内部，留出一定边距
+        const margin = 1;
         do {
-            this.position.x = Math.floor(Math.random() * width);
-            this.position.y = Math.floor(Math.random() * height);
+            this.position.x = Math.floor(Math.random() * (width - 2 * margin)) + margin;
+            this.position.y = Math.floor(Math.random() * (height - 2 * margin)) + margin;
         } while (this.checkCollisionWithSnake(snake));
 
         const random = Math.random();
@@ -251,14 +262,17 @@ class Game {
             );
         });
 
-        // 绘制食物
-        this.ctx.fillStyle = this.food.type;
-        this.ctx.fillRect(
-            this.food.position.x * this.gridSize,
-            this.food.position.y * this.gridSize,
-            this.gridSize - 1,
-            this.gridSize - 1
-        );
+        // 绘制食物图片
+        const foodImage = this.food.images[this.food.type];
+        if (foodImage.complete) { // 确保图片已加载
+            this.ctx.drawImage(
+                foodImage,
+                this.food.position.x * this.gridSize + 1, // 添加小偏移使图片居中
+                this.food.position.y * this.gridSize + 1,
+                this.gridSize - 2, // 稍微缩小以适应网格
+                this.gridSize - 2
+            );
+        }
 
         // 绘制游戏状态文本
         this.ctx.font = '30px Arial';
