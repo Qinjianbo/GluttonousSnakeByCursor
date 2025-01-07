@@ -94,10 +94,23 @@ class Food {
 }
 
 class Game {
-    constructor() {
+    constructor(canvasId) {
+        // 添加计时器时间常量
+        this.GAME_DURATION = 10; // 游戏时长（秒）
+        
         this.initGame();
         this.setupEventListeners();
         this.generateQRCode();
+        
+        // 初始化计时器
+        this.timeLeft = this.GAME_DURATION;
+        this.timer = null;
+        
+        // 绑定重启按钮
+        document.getElementById('restartButton').addEventListener('click', () => this.restart());
+        
+        // 开始游戏
+        this.start();
     }
 
     generateQRCode() {
@@ -139,8 +152,10 @@ class Game {
     initGame() {
         this.canvas = document.getElementById('gameCanvas');
         // 生成随机画布尺寸
-        const randomWidth = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
-        const randomHeight = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        // const randomWidth = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        // const randomHeight = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        const randomWidth = 400;
+        const randomHeight = 400;
         this.canvas.width = randomWidth;
         this.canvas.height = randomHeight;
         
@@ -199,15 +214,35 @@ class Game {
         if (this.gameOver) return;
         
         this.isPaused = !this.isPaused;
-        if (!this.isPaused) {
+        
+        if (this.isPaused) {
+            // 暂停时清除计时器
+            clearInterval(this.timer);
+        } else {
+            // 继续时重新启动计时器
+            this.timer = setInterval(() => this.updateTimer(), 1000);
             this.startGameLoop();
         }
+        
         this.draw(); // 立即重绘以显示/隐藏暂停信息
     }
 
     restart() {
+        // 清除现有计时器
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // 重置游戏状态
         this.initGame();
         this.isPaused = false;
+        
+        // 重置并启动计时器
+        this.timeLeft = this.GAME_DURATION;
+        this.updateTimer();
+        this.timer = setInterval(() => this.updateTimer(), 1000);
+        
+        // 重启游戏循环
         if (!this.gameLoopRunning) {
             this.startGameLoop();
         }
@@ -223,7 +258,7 @@ class Game {
         
         this.update();
         this.draw();
-        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 100);
+        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 200);
     }
 
     update() {
@@ -236,6 +271,7 @@ class Game {
         
         if (this.snake.checkCollision(this.width, this.height)) {
             this.gameOver = true;
+            this.endGame();
             return;
         }
 
@@ -286,6 +322,52 @@ class Game {
             this.ctx.font = '20px Arial';
             this.ctx.fillText('点击继续', this.canvas.width / 2, this.canvas.height / 2 + 40);
         }
+    }
+
+    start() {
+        // 重置游戏状态
+        this.score = 0;
+        this.timeLeft = this.GAME_DURATION;
+        this.updateTimer();
+        
+        // 清除之前的计时器
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // 启动新的计时器
+        this.timer = setInterval(() => this.updateTimer(), 1000);
+        
+        // 更新显示
+        document.getElementById('score').textContent = `得分: ${this.score}`;
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    updateTimer() {
+        if (this.timeLeft <= 0) {
+            this.timeLeft = 0; // 防止负数
+            this.endGame();
+            return;
+        }
+        this.timeLeft--; // 将递减移到最后
+        document.getElementById('timer').textContent = 
+            `剩余时间: ${Math.floor(this.timeLeft / 60)}:${(this.timeLeft % 60).toString().padStart(2, '0')}`;
+    }
+
+    endGame() {
+        this.gameLoopRunning = false;
+        this.gameOver = true;
+        clearInterval(this.timer);
+        
+        // 停止蛇的移动
+        this.isPaused = true;
+        
+        // 重绘一次以显示游戏结束状态
+        this.draw();
+        
+        alert(`游戏结束！你的得分是: ${this.score}`);
     }
 }
 
