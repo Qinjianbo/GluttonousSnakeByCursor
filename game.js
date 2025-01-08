@@ -580,37 +580,134 @@ class Game {
     drawCyberpunkGrid() {
         this.ctx.save();
         
-        // 绘制主网格
+        // 背景渐变 - 保持柔和的背景
+        const bgGradient = this.ctx.createRadialGradient(
+            this.canvas.width/2, this.canvas.height/2, 0,
+            this.canvas.width/2, this.canvas.height/2, this.canvas.width/2
+        );
+        bgGradient.addColorStop(0, 'rgba(0, 20, 30, 0.2)');
+        bgGradient.addColorStop(1, 'rgba(0, 10, 20, 0.3)');
+        this.ctx.fillStyle = bgGradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 简化网格 - 只保留主要网格线
         this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
         this.ctx.lineWidth = 0.5;
         
-        // 绘制垂直线
-        for (let x = 0; x <= this.width; x++) {
+        // 只绘制较少的垂直和水平线
+        for (let x = 0; x <= this.width; x += 4) {
             this.ctx.beginPath();
             this.ctx.moveTo(x * this.gridSize, 0);
             this.ctx.lineTo(x * this.gridSize, this.canvas.height);
             this.ctx.stroke();
         }
         
-        // 绘制水平线
-        for (let y = 0; y <= this.height; y++) {
+        for (let y = 0; y <= this.height; y += 4) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y * this.gridSize);
             this.ctx.lineTo(this.canvas.width, y * this.gridSize);
             this.ctx.stroke();
         }
 
-        // 添加随机的赛博朋克装饰元素
-        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
-        for (let i = 0; i < 5; i++) {
+        // 保留但简化科技感装饰
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+        for (let i = 0; i < 2; i++) { // 减少装饰元素数量
             const x = Math.random() * this.canvas.width;
             const y = Math.random() * this.canvas.height;
+            const radius = Math.random() * 40 + 30;
+            
+            // 简化同心圆
+            for (let j = 0; j < 2; j++) {
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius + j * 20, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+
+            // 简化十字线
             this.ctx.beginPath();
-            this.ctx.arc(x, y, Math.random() * 50 + 20, 0, Math.PI * 2);
+            this.ctx.moveTo(x - radius, y);
+            this.ctx.lineTo(x + radius, y);
+            this.ctx.moveTo(x, y - radius);
+            this.ctx.lineTo(x, y + radius);
             this.ctx.stroke();
         }
 
+        this.drawCornerDecorations();
+        this.drawSimplifiedDataStreams();
+        this.drawSimplifiedScanLines();
+
         this.ctx.restore();
+    }
+
+    // 添加角落装饰
+    drawCornerDecorations() {
+        const size = 40;
+        const corners = [
+            [0, 0], // 左上
+            [this.canvas.width - size, 0], // 右上
+            [0, this.canvas.height - size], // 左下
+            [this.canvas.width - size, this.canvas.height - size] // 右下
+        ];
+
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+        corners.forEach(([x, y]) => {
+            // L形边角
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y + size);
+            this.ctx.lineTo(x, y);
+            this.ctx.lineTo(x + size, y);
+            this.ctx.stroke();
+
+            // 装饰性小圆圈
+            this.ctx.beginPath();
+            this.ctx.arc(x + size/2, y + size/2, 5, 0, Math.PI * 2);
+            this.ctx.stroke();
+        });
+    }
+
+    // 简化数据流效果
+    drawSimplifiedDataStreams() {
+        const time = Date.now() / 1000;
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+        
+        // 减少数据流数量
+        for (let i = 0; i < 4; i++) {
+            const x = (Math.sin(time * 0.3 + i) + 1) * this.canvas.width / 2;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.stroke();
+
+            // 简化数据点
+            for (let j = 0; j < 5; j++) {
+                const y = (j / 4) * this.canvas.height;
+                this.ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+                this.ctx.fillRect(x - 1, y - 1, 2, 2);
+            }
+        }
+    }
+
+    // 简化扫描线效果
+    drawSimplifiedScanLines() {
+        // 主扫描线
+        const scanPos = (Date.now() % 3000) / 3000 * this.canvas.height;
+        const scanGradient = this.ctx.createLinearGradient(0, scanPos - 5, 0, scanPos + 5);
+        scanGradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
+        scanGradient.addColorStop(0.5, 'rgba(0, 255, 255, 0.1)');
+        scanGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+
+        this.ctx.fillStyle = scanGradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 减少闪烁点的数量
+        for (let i = 0; i < 15; i++) {
+            const x = Math.random() * this.canvas.width;
+            const y = Math.random() * this.canvas.height;
+            this.ctx.fillStyle = `rgba(0, 255, 255, ${Math.random() * 0.2})`;
+            this.ctx.fillRect(x, y, 1, 1);
+        }
     }
 }
 
