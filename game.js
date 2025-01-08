@@ -144,12 +144,12 @@ class Game {
         bodyCanvas.height = this.gridSize;
         const bodyCtx = bodyCanvas.getContext('2d');
         
-        // 蛇身主体颜色
-        bodyCtx.fillStyle = '#4CAF50';
+        // 蛇身主体颜色 - 使用更自然的绿色
+        bodyCtx.fillStyle = '#2E7D32';  // 深绿色作为基础色
         bodyCtx.fillRect(0, 0, this.gridSize, this.gridSize);
         
-        // 绘制鳞片纹理
-        bodyCtx.fillStyle = '#388E3C';
+        // 绘制鳞片纹理 - 使用略深的色调
+        bodyCtx.fillStyle = '#1B5E20';  // 更深的绿色作为鳞片
         const scaleSize = this.gridSize / 4;
         for (let i = 0; i < 2; i++) {
             for (let j = 0; j < 2; j++) {
@@ -173,8 +173,8 @@ class Game {
         headCanvas.height = this.gridSize;
         const headCtx = headCanvas.getContext('2d');
         
-        // 绘制蛇头（椭圆形）
-        headCtx.fillStyle = '#66BB6A';
+        // 绘制蛇头（椭圆形）- 使用略亮的色调
+        headCtx.fillStyle = '#388E3C';  // 稍亮的绿色作为头部基色
         headCtx.beginPath();
         headCtx.ellipse(
             this.gridSize/2,
@@ -187,42 +187,43 @@ class Game {
         );
         headCtx.fill();
         
-        // 添加渐变效果使头部更立体
+        // 添加渐变效果使头部更立体 - 调整渐变颜色
         const gradient = headCtx.createRadialGradient(
             this.gridSize/2, this.gridSize/2 - 2, 0,
             this.gridSize/2, this.gridSize/2, this.gridSize/2
         );
-        gradient.addColorStop(0, '#7CB342');
-        gradient.addColorStop(1, '#558B2F');
+        gradient.addColorStop(0, '#43A047');  // 顶部偏亮
+        gradient.addColorStop(0.6, '#388E3C'); // 中间过渡色
+        gradient.addColorStop(1, '#2E7D32');   // 边缘偏暗
         headCtx.fillStyle = gradient;
         headCtx.fill();
         
-        // 绘制眼睛（稍微改变位置和大小）
-        headCtx.fillStyle = 'white';
+        // 绘制眼睛 - 使用更明亮的白色
+        headCtx.fillStyle = '#FFFFFF';
         const eyeSize = this.gridSize / 5;
         headCtx.beginPath();
         headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
         headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
         headCtx.fill();
         
-        // 绘制瞳孔（添加高光效果）
-        headCtx.fillStyle = 'black';
+        // 绘制瞳孔 - 使用更深的黑色
+        headCtx.fillStyle = '#000000';
         const pupilSize = eyeSize / 2;
         headCtx.beginPath();
         headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
         headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
         headCtx.fill();
         
-        // 添加眼睛高光
-        headCtx.fillStyle = 'white';
+        // 添加眼睛高光 - 使用纯白色
+        headCtx.fillStyle = '#FFFFFF';
         const highlightSize = pupilSize / 3;
         headCtx.beginPath();
         headCtx.arc(this.gridSize/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
         headCtx.arc(this.gridSize*2/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
         headCtx.fill();
         
-        // 绘制舌头（更细长的分叉舌头）
-        headCtx.fillStyle = '#FF1744';
+        // 绘制舌头 - 使用更自然的红色
+        headCtx.fillStyle = '#E53935';  // 稍微柔和的红色
         headCtx.beginPath();
         const tongueStart = this.gridSize * 0.7;
         const tongueLength = this.gridSize * 0.4;
