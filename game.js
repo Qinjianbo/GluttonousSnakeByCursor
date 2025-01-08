@@ -115,7 +115,7 @@ class Game {
         this.initGame();           // 初始化游戏
         this.generateSnakeTexture(); // 生成蛇的纹理
         this.setupEventListeners(); // 设置事件监听
-        this.generateQRCode();      // 生成二维码
+        // this.generateQRCode();      // 生成二维码
     }
 
     generateQRCode() {
@@ -462,7 +462,7 @@ class Game {
         
         this.update();
         this.draw();
-        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 100);
+        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 200);
     }
 
     update() {
