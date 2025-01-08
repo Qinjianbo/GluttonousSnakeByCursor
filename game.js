@@ -490,18 +490,21 @@ class Game {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // 绘制赛博朋克风格的背景网格
+        this.drawCyberpunkGrid();
+
         // 绘制蛇
         this.snake.position.forEach((segment, index) => {
             if (this.snakeTextureLoaded) {
                 let angle = 0;
-                if (index === 0) {  // 蛇头 - 调整方向
+                if (index === 0) {
                     switch(this.snake.direction) {
                         case 'up': angle = Math.PI; break;     // 向上时头朝上（180度）
                         case 'right': angle = -Math.PI/2; break; // 向右时头朝右（-90度）
                         case 'down': angle = 0; break;         // 向下时头朝下（0度）
                         case 'left': angle = Math.PI/2; break;  // 向左时头朝左（90度）
                     }
-                } else {  // 蛇身 - 调整方向
+                } else {
                     const prev = this.snake.position[index - 1];
                     const curr = segment;
                     if (prev.x > curr.x) angle = Math.PI/2;      // 向左移动
@@ -518,6 +521,13 @@ class Game {
                 this.ctx.rotate(angle);
                 
                 const texture = index === 0 ? this.snakeHeadTexture : this.snakeBodyTexture;
+                
+                // 添加霓虹效果
+                if (index === 0) {
+                    this.ctx.shadowColor = '#0ff';
+                    this.ctx.shadowBlur = 10;
+                }
+                
                 this.ctx.drawImage(
                     texture,
                     -this.gridSize/2,
@@ -530,30 +540,77 @@ class Game {
             }
         });
 
-        // 绘制食物图片
+        // 绘制食物时添加霓虹效果
         const foodImage = this.food.images[this.food.type];
-        if (foodImage.complete) { // 确保图片已加载
+        if (foodImage.complete) {
+            this.ctx.save();
+            this.ctx.shadowColor = '#0ff';
+            this.ctx.shadowBlur = 15;
             this.ctx.drawImage(
                 foodImage,
-                this.food.position.x * this.gridSize + 1, // 添加小偏移使图片居中
+                this.food.position.x * this.gridSize + 1,
                 this.food.position.y * this.gridSize + 1,
-                this.gridSize - 2, // 稍微缩小以适应网格
+                this.gridSize - 2,
                 this.gridSize - 2
             );
+            this.ctx.restore();
         }
 
         // 绘制游戏状态文本
-        this.ctx.font = '30px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = 'black';
-        
-        if (this.gameOver) {
-            this.ctx.fillText('游戏结束!', this.canvas.width / 2, this.canvas.height / 2);
-        } else if (this.isPaused) {
-            this.ctx.fillText('游戏暂停', this.canvas.width / 2, this.canvas.height / 2);
-            this.ctx.font = '20px Arial';
-            this.ctx.fillText('点击继续', this.canvas.width / 2, this.canvas.height / 2 + 40);
+        if (this.gameOver || this.isPaused) {
+            this.ctx.save();
+            this.ctx.fillStyle = '#0ff';
+            this.ctx.shadowColor = '#0ff';
+            this.ctx.shadowBlur = 10;
+            this.ctx.font = '30px Orbitron';
+            this.ctx.textAlign = 'center';
+            
+            if (this.gameOver) {
+                this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+            } else if (this.isPaused) {
+                this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
+                this.ctx.font = '20px Orbitron';
+                this.ctx.fillText('Click to Continue', this.canvas.width / 2, this.canvas.height / 2 + 40);
+            }
+            this.ctx.restore();
         }
+    }
+
+    // 添加绘制赛博朋克网格的方法
+    drawCyberpunkGrid() {
+        this.ctx.save();
+        
+        // 绘制主网格
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+        this.ctx.lineWidth = 0.5;
+        
+        // 绘制垂直线
+        for (let x = 0; x <= this.width; x++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x * this.gridSize, 0);
+            this.ctx.lineTo(x * this.gridSize, this.canvas.height);
+            this.ctx.stroke();
+        }
+        
+        // 绘制水平线
+        for (let y = 0; y <= this.height; y++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y * this.gridSize);
+            this.ctx.lineTo(this.canvas.width, y * this.gridSize);
+            this.ctx.stroke();
+        }
+
+        // 添加随机的赛博朋克装饰元素
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+        for (let i = 0; i < 5; i++) {
+            const x = Math.random() * this.canvas.width;
+            const y = Math.random() * this.canvas.height;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, Math.random() * 50 + 20, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+
+        this.ctx.restore();
     }
 }
 

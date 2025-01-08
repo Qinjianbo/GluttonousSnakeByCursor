@@ -3,11 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇游戏</title>
-    <link rel="stylesheet" href="style.css">
+    <title>赛博蛇</title>
     <style>
-        /* 可以在这里添加一些样式来美化游戏界面 */
+        body {
+            background: #0a0a0a;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Orbitron', sans-serif;
+            color: #0ff;
+        }
+
+        .game-container {
+            position: relative;
+            padding: 20px;
+            background: linear-gradient(45deg, #000000, #1a1a1a);
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px #0ff, inset 0 0 20px #0ff;
+            border-radius: 10px;
+        }
+
+        .score-board {
+            color: #0ff;
+            font-size: 24px;
+            text-shadow: 0 0 10px #0ff;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .restart-button {
+            background: transparent;
+            color: #0ff;
+            border: 2px solid #0ff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            width: 100%;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        .restart-button:hover {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        #gameCanvas {
+            border: 2px solid #0ff;
+            box-shadow: 0 0 15px #0ff;
+            background: rgba(0, 0, 0, 0.8);
+        }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- 游戏容器 -->
