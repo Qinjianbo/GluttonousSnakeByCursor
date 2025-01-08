@@ -4,23 +4,28 @@ class Snake {
     }
 
     reset(width, height) {
-        // 确保蛇的初始位置不会太靠近边界
+        // 确保蛇的初始位置不会太靠近边界，留出margin个格子的安全距离
         const margin = 5;
         const x = Math.floor(Math.random() * (width - 2 * margin)) + margin;
         const y = Math.floor(Math.random() * (height - 2 * margin)) + margin;
         
+        // 初始化蛇的位置，一开始只有一个头部
         this.position = [{ x, y }];
         
         // 随机选择初始方向
         const directions = ['up', 'down', 'left', 'right'];
         this.direction = directions[Math.floor(Math.random() * directions.length)];
+        // nextDirection用于存储下一步的移动方向，防止在一次更新周期内多次改变方向
         this.nextDirection = this.direction;
     }
 
     move() {
+        // 更新当前方向为计划的下一个方向
         this.direction = this.nextDirection;
+        // 复制蛇头的位置信息
         const head = { ...this.position[0] };
 
+        // 根据方向更新蛇头的新位置
         switch (this.direction) {
             case 'up': head.y--; break;
             case 'down': head.y++; break;
@@ -28,21 +33,27 @@ class Snake {
             case 'right': head.x++; break;
         }
 
+        // 在数组开头添加新的头部位置
         this.position.unshift(head);
+        // 移除尾部，实现移动效果，并返回被移除的尾部位置
         return this.position.pop();
     }
 
     grow() {
+        // 获取当前尾部位置
         const tail = this.position[this.position.length - 1];
+        // 通过复制尾部位置来增加蛇的长度
         this.position.push({ ...tail });
     }
 
     checkCollision(width, height) {
         const head = this.position[0];
+        // 检查是否撞到边界
         if (head.x < 0 || head.x >= width || head.y < 0 || head.y >= height) {
             return true;
         }
 
+        // 检查是否撞到自己的身体
         for (let i = 1; i < this.position.length; i++) {
             if (head.x === this.position[i].x && head.y === this.position[i].y) {
                 return true;
@@ -54,22 +65,26 @@ class Snake {
 
 class Food {
     constructor() {
+        // 食物的位置坐标
         this.position = { x: 0, y: 0 };
+        // 食物类型，默认为红色
         this.type = 'red';
+        // 不同类型食物的分数
         this.types = {
-            'red': 1,
-            'yellow': 2,
-            'blue': 3
+            'red': 1,    // 普通食物，1分
+            'yellow': 2, // 稀有食物，2分
+            'blue': 3    // 罕见食物，3分
         };
+        // 初始化食物图片对象
         this.images = {
             'red': new Image(),
             'yellow': new Image(),
             'blue': new Image()
         };
-        // 设置图片源
-        this.images.red.src = 'images/apple.png';
-        this.images.yellow.src = 'images/banana.png';
-        this.images.blue.src = 'images/blueberry.png';
+        // 设置各种食物的图片源
+        this.images.red.src = 'images/apple.png';      // 苹果
+        this.images.yellow.src = 'images/banana.png';  // 香蕉
+        this.images.blue.src = 'images/blueberry.png'; // 蓝莓
     }
 
     generate(width, height, snake) {
@@ -78,8 +93,9 @@ class Food {
         do {
             this.position.x = Math.floor(Math.random() * (width - 2 * margin)) + margin;
             this.position.y = Math.floor(Math.random() * (height - 2 * margin)) + margin;
-        } while (this.checkCollisionWithSnake(snake));
+        } while (this.checkCollisionWithSnake(snake)); // 确保食物不会生成在蛇身上
 
+        // 随机决定食物类型，50%红色，30%黄色，20%蓝色
         const random = Math.random();
         if (random < 0.5) this.type = 'red';
         else if (random < 0.8) this.type = 'yellow';
@@ -87,6 +103,7 @@ class Food {
     }
 
     checkCollisionWithSnake(snake) {
+        // 检查食物是否与蛇的任何部分重叠
         return snake.position.some(segment => 
             segment.x === this.position.x && segment.y === this.position.y
         );
@@ -95,10 +112,10 @@ class Food {
 
 class Game {
     constructor() {
-        this.initGame();
-        this.generateSnakeTexture();
-        this.setupEventListeners();
-        this.generateQRCode();
+        this.initGame();           // 初始化游戏
+        this.generateSnakeTexture(); // 生成蛇的纹理
+        this.setupEventListeners(); // 设置事件监听
+        this.generateQRCode();      // 生成二维码
     }
 
     generateQRCode() {
@@ -347,33 +364,43 @@ class Game {
     }
 
     initGame() {
+        // 获取画布元素并设置尺寸
         this.canvas = document.getElementById('gameCanvas');
         const randomWidth = 400;
         const randomHeight = 400;
         this.canvas.width = randomWidth;
         this.canvas.height = randomHeight;
         
+        // 获取绘图上下文
         this.ctx = this.canvas.getContext('2d');
+        // 设置网格大小和游戏区域的网格数量
         this.gridSize = 20;
         this.width = this.canvas.width / this.gridSize;
         this.height = this.canvas.height / this.gridSize;
         
+        // 初始化蛇和食物
         this.snake = new Snake();
         this.snake.reset(this.width, this.height);
-        
         this.food = new Food();
+        
+        // 初始化游戏状态
         this.score = 0;
         this.gameOver = false;
         this.isPaused = false;
 
+        // 重置显示的分数
         document.getElementById('score').textContent = '0';
+        // 生成第一个食物
         this.food.generate(this.width, this.height, this.snake);
     }
 
     setupEventListeners() {
+        // 监听键盘事件
         document.addEventListener('keydown', (e) => {
+            // 如果游戏暂停，只响应ESC键
             if (this.isPaused && e.key !== 'Escape') return;
             
+            // 处理方向键和ESC键
             switch (e.key) {
                 case 'ArrowUp':
                     if (this.snake.direction !== 'down') this.snake.nextDirection = 'up';
@@ -393,14 +420,17 @@ class Game {
             }
         });
 
+        // 点击画布暂停/继续游戏
         this.canvas.addEventListener('click', () => {
             this.togglePause();
         });
 
+        // 重新开始按钮事件
         document.getElementById('restartButton').addEventListener('click', () => {
             this.restart();
         });
 
+        // 开始游戏循环
         this.startGameLoop();
     }
 

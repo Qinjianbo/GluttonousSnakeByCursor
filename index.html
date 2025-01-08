@@ -10,17 +10,23 @@
     </style>
 </head>
 <body>
+    <!-- 游戏容器 -->
     <div class="game-container">
+        <!-- 分数显示区 -->
         <div class="score-board">分数：<span id="score">0</span></div>
+        <!-- 重新开始按钮 -->
         <button id="restartButton" class="restart-button">重新开始</button>
+        <!-- 游戏画布 -->
         <canvas id="gameCanvas"></canvas>
     </div>
+    <!-- 二维码容器 -->
     <div class="qr-container">
         <div id="qrcode"></div>
         <p class="qr-tip">扫描二维码在手机上玩</p>
     </div>
+    <!-- 引入二维码生成库 -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    <!-- 引入游戏主程序 -->
     <script src="game.js"></script>
-    <img id="snakeTexture" src="images/snake_texture.png" style="display:none;">
 </body>
 </html> 
