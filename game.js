@@ -173,89 +173,154 @@ class Game {
         headCanvas.height = this.gridSize;
         const headCtx = headCanvas.getContext('2d');
         
-        // 绘制蛇头（椭圆形）- 使用略亮的色调
-        headCtx.fillStyle = '#388E3C';  // 稍亮的绿色作为头部基色
+        // 绘制蛇头（更尖锐的椭圆形）
+        headCtx.fillStyle = '#388E3C';
+        headCtx.beginPath();
+        // 使用贝塞尔曲线绘制更尖锐的头部形状
+        const x = this.gridSize/2;
+        const y = this.gridSize/2;
+        const width = this.gridSize/2;
+        const height = this.gridSize/2 - 2;
+        
+        headCtx.moveTo(x - width, y);
+        // 左下部分
+        headCtx.quadraticCurveTo(x - width/2, y + height, x, y + height);
+        // 右下部分
+        headCtx.quadraticCurveTo(x + width/2, y + height, x + width, y);
+        // 右上部分（更尖锐）
+        headCtx.quadraticCurveTo(x + width/1.5, y - height/1.2, x, y - height);
+        // 左上部分（更尖锐）
+        headCtx.quadraticCurveTo(x - width/1.5, y - height/1.2, x - width, y);
+        headCtx.closePath();
+        headCtx.fill();
+        
+        // 添加更强烈的渐变效果
+        const gradient = headCtx.createRadialGradient(
+            this.gridSize/2, this.gridSize/2 - 2, 0,
+            this.gridSize/2, this.gridSize/2, this.gridSize/2
+        );
+        gradient.addColorStop(0, '#43A047');
+        gradient.addColorStop(0.4, '#388E3C');
+        gradient.addColorStop(1, '#1B5E20');  // 更深的边缘色
+        headCtx.fillStyle = gradient;
+        headCtx.fill();
+        
+        // 绘制更凶狠的眼睛（细长的形状）
+        headCtx.fillStyle = '#FFFFFF';
+        const eyeWidth = this.gridSize / 4;
+        const eyeHeight = this.gridSize / 6;
+        
+        // 左眼
         headCtx.beginPath();
         headCtx.ellipse(
-            this.gridSize/2,
-            this.gridSize/2,
-            this.gridSize/2,
+            this.gridSize/3, 
             this.gridSize/2 - 2,
+            eyeWidth/2,
+            eyeHeight/2,
+            -Math.PI/6,  // 稍微倾斜
+            0,
+            Math.PI * 2
+        );
+        // 右眼
+        headCtx.ellipse(
+            this.gridSize*2/3,
+            this.gridSize/2 - 2,
+            eyeWidth/2,
+            eyeHeight/2,
+            Math.PI/6,  // 稍微倾斜
+            0,
+            Math.PI * 2
+        );
+        headCtx.fill();
+        
+        // 绘制竖瞳
+        headCtx.fillStyle = '#000000';
+        const pupilWidth = eyeWidth / 6;
+        const pupilHeight = eyeHeight * 1.2;
+        
+        // 左瞳孔
+        headCtx.beginPath();
+        headCtx.ellipse(
+            this.gridSize/3,
+            this.gridSize/2 - 2,
+            pupilWidth,
+            pupilHeight,
+            0,
+            0,
+            Math.PI * 2
+        );
+        // 右瞳孔
+        headCtx.ellipse(
+            this.gridSize*2/3,
+            this.gridSize/2 - 2,
+            pupilWidth,
+            pupilHeight,
             0,
             0,
             Math.PI * 2
         );
         headCtx.fill();
         
-        // 添加渐变效果使头部更立体 - 调整渐变颜色
-        const gradient = headCtx.createRadialGradient(
-            this.gridSize/2, this.gridSize/2 - 2, 0,
-            this.gridSize/2, this.gridSize/2, this.gridSize/2
+        // 添加眉毛（显得更具攻击性）
+        headCtx.strokeStyle = '#1B5E20';
+        headCtx.lineWidth = 1;
+        
+        // 左眉毛
+        headCtx.beginPath();
+        headCtx.moveTo(this.gridSize/4, this.gridSize/3);
+        headCtx.quadraticCurveTo(
+            this.gridSize/3,
+            this.gridSize/4,
+            this.gridSize/2.5,
+            this.gridSize/3
         );
-        gradient.addColorStop(0, '#43A047');  // 顶部偏亮
-        gradient.addColorStop(0.6, '#388E3C'); // 中间过渡色
-        gradient.addColorStop(1, '#2E7D32');   // 边缘偏暗
-        headCtx.fillStyle = gradient;
-        headCtx.fill();
+        headCtx.stroke();
         
-        // 绘制眼睛 - 使用更明亮的白色
-        headCtx.fillStyle = '#FFFFFF';
-        const eyeSize = this.gridSize / 5;
+        // 右眉毛
         headCtx.beginPath();
-        headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
-        headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
-        headCtx.fill();
+        headCtx.moveTo(this.gridSize*3/4, this.gridSize/3);
+        headCtx.quadraticCurveTo(
+            this.gridSize*2/3,
+            this.gridSize/4,
+            this.gridSize*0.6,
+            this.gridSize/3
+        );
+        headCtx.stroke();
         
-        // 绘制瞳孔 - 使用更深的黑色
-        headCtx.fillStyle = '#000000';
-        const pupilSize = eyeSize / 2;
-        headCtx.beginPath();
-        headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
-        headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
-        headCtx.fill();
-        
-        // 添加眼睛高光 - 使用纯白色
-        headCtx.fillStyle = '#FFFFFF';
-        const highlightSize = pupilSize / 3;
-        headCtx.beginPath();
-        headCtx.arc(this.gridSize/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
-        headCtx.arc(this.gridSize*2/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
-        headCtx.fill();
-        
-        // 绘制舌头 - 使用更自然的红色
-        headCtx.fillStyle = '#E53935';  // 稍微柔和的红色
+        // 绘制更锐利的舌头
+        headCtx.fillStyle = '#D32F2F';  // 更深的红色
         headCtx.beginPath();
         const tongueStart = this.gridSize * 0.7;
-        const tongueLength = this.gridSize * 0.4;
-        const tongueWidth = this.gridSize * 0.1;
+        const tongueLength = this.gridSize * 0.5;  // 稍微加长
+        const tongueWidth = this.gridSize * 0.08;  // 稍微变细
         
-        // 舌头的中心线
+        // 绘制更尖锐的分叉舌头
         headCtx.moveTo(this.gridSize/2, tongueStart);
-        // 右分叉
+        // 右分叉（更尖锐）
         headCtx.quadraticCurveTo(
             this.gridSize/2 + tongueWidth,
-            tongueStart + tongueLength * 0.6,
-            this.gridSize/2 + tongueWidth * 2,
+            tongueStart + tongueLength * 0.5,
+            this.gridSize/2 + tongueWidth * 3,
             tongueStart + tongueLength
         );
         // 回到中心
         headCtx.quadraticCurveTo(
             this.gridSize/2 + tongueWidth,
-            tongueStart + tongueLength * 0.7,
+            tongueStart + tongueLength * 0.6,
             this.gridSize/2,
-            tongueStart + tongueLength * 0.5
+            tongueStart + tongueLength * 0.4
         );
-        // 左分叉
+        // 左分叉（更尖锐）
         headCtx.quadraticCurveTo(
             this.gridSize/2 - tongueWidth,
-            tongueStart + tongueLength * 0.7,
-            this.gridSize/2 - tongueWidth * 2,
+            tongueStart + tongueLength * 0.6,
+            this.gridSize/2 - tongueWidth * 3,
             tongueStart + tongueLength
         );
         // 回到起点
         headCtx.quadraticCurveTo(
             this.gridSize/2 - tongueWidth,
-            tongueStart + tongueLength * 0.6,
+            tongueStart + tongueLength * 0.5,
             this.gridSize/2,
             tongueStart
         );
