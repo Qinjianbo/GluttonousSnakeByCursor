@@ -110,12 +110,234 @@ class Food {
     }
 }
 
+class Renderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        // 尝试初始化 WebGL
+        this.gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (this.gl) {
+            // WebGL 可用，初始化 WebGL
+            this.type = 'webgl';
+            this.initWebGL();
+        } else {
+            // WebGL 不可用，使用 Canvas 2D
+            console.log('WebGL not supported, falling back to Canvas 2D');
+            this.type = '2d';
+            this.ctx = canvas.getContext('2d');
+        }
+    }
+
+    initWebGL() {
+        // WebGL 初始化代码
+        this.initShaders();
+        this.initBuffers();
+        this.initTextures();
+    }
+
+    // 顶点着色器
+    get vertexShaderSource() {
+        return `
+            attribute vec2 a_position;
+            attribute vec2 a_texCoord;
+            
+            uniform vec2 u_resolution;
+            uniform vec2 u_translation;
+            uniform float u_rotation;
+            uniform vec2 u_scale;
+            
+            varying vec2 v_texCoord;
+            
+            void main() {
+                vec2 scaledPosition = a_position * u_scale;
+                float s = sin(u_rotation);
+                float c = cos(u_rotation);
+                mat2 rotation = mat2(c, -s, s, c);
+                vec2 rotatedPosition = rotation * scaledPosition;
+                vec2 position = rotatedPosition + u_translation;
+                
+                vec2 zeroToOne = position / u_resolution;
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                vec2 clipSpace = zeroToTwo - 1.0;
+                
+                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+                v_texCoord = a_texCoord;
+            }
+        `;
+    }
+
+    // 片段着色器
+    get fragmentShaderSource() {
+        return `
+            precision mediump float;
+            
+            uniform sampler2D u_image;
+            uniform vec4 u_color;
+            uniform bool u_useTexture;
+            uniform float u_time;
+            
+            varying vec2 v_texCoord;
+            
+            void main() {
+                if (u_useTexture) {
+                    vec4 texColor = texture2D(u_image, v_texCoord);
+                    // 添加霓虹效果
+                    float glow = sin(u_time * 0.003) * 0.1 + 0.9;
+                    gl_FragColor = texColor * vec4(glow, glow, 1.0, 1.0);
+                } else {
+                    gl_FragColor = u_color;
+                }
+            }
+        `;
+    }
+
+    initShaders() {
+        const vertexShader = this.createShader(this.gl.VERTEX_SHADER, this.vertexShaderSource);
+        const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+
+        this.program = this.gl.createProgram();
+        this.gl.attachShader(this.program, vertexShader);
+        this.gl.attachShader(this.program, fragmentShader);
+        this.gl.linkProgram(this.program);
+
+        if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
+            console.error('Unable to initialize shader program');
+            return;
+        }
+
+        this.gl.useProgram(this.program);
+
+        // 获取着色器变量位置
+        this.positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+        this.texCoordLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
+        this.resolutionLocation = this.gl.getUniformLocation(this.program, 'u_resolution');
+        this.translationLocation = this.gl.getUniformLocation(this.program, 'u_translation');
+        this.rotationLocation = this.gl.getUniformLocation(this.program, 'u_rotation');
+        this.scaleLocation = this.gl.getUniformLocation(this.program, 'u_scale');
+        this.colorLocation = this.gl.getUniformLocation(this.program, 'u_color');
+        this.useTextureLocation = this.gl.getUniformLocation(this.program, 'u_useTexture');
+        this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time');
+    }
+
+    initBuffers() {
+        // 创建顶点缓冲区
+        this.positionBuffer = this.gl.createBuffer();
+        this.texCoordBuffer = this.gl.createBuffer();
+
+        // 设置矩形顶点
+        const positions = new Float32Array([
+            0, 0,
+            1, 0,
+            0, 1,
+            0, 1,
+            1, 0,
+            1, 1,
+        ]);
+
+        // 设置纹理坐标
+        const texCoords = new Float32Array([
+            0, 0,
+            1, 0,
+            0, 1,
+            0, 1,
+            1, 0,
+            1, 1,
+        ]);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.texCoordBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+    }
+
+    createShader(type, source) {
+        const shader = this.gl.createShader(type);
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error('Shader compile error:', this.gl.getShaderInfoLog(shader));
+            this.gl.deleteShader(shader);
+            return null;
+        }
+
+        return shader;
+    }
+
+    // 统一的绘制接口
+    drawSprite(texture, x, y, width, height, rotation = 0) {
+        if (this.type === 'webgl') {
+            // WebGL 绘制
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+            this.gl.enableVertexAttribArray(this.positionLocation);
+            this.gl.vertexAttribPointer(this.positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.texCoordBuffer);
+            this.gl.enableVertexAttribArray(this.texCoordLocation);
+            this.gl.vertexAttribPointer(this.texCoordLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+            this.gl.uniform2f(this.resolutionLocation, this.canvas.width, this.canvas.height);
+            this.gl.uniform2f(this.translationLocation, x, y);
+            this.gl.uniform1f(this.rotationLocation, rotation);
+            this.gl.uniform2f(this.scaleLocation, width, height);
+            this.gl.uniform1f(this.timeLocation, Date.now());
+
+            this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+            this.gl.uniform1i(this.useTextureLocation, 1);
+
+            this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+        } else {
+            // Canvas 2D 绘制
+            this.ctx.save();
+            this.ctx.translate(x + width/2, y + height/2);
+            this.ctx.rotate(rotation);
+            this.ctx.drawImage(texture, -width/2, -height/2, width, height);
+            this.ctx.restore();
+        }
+    }
+
+    clear() {
+        if (this.type === 'webgl') {
+            this.gl.clearColor(0, 0, 0, 0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        } else {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+
+    // 添加绘制背景的方法
+    drawBackground(game) {
+        if (this.type === 'webgl') {
+            // WebGL 背景绘制
+            // ... WebGL 背景绘制代码 ...
+        } else {
+            // Canvas 2D 背景绘制
+            game.drawCyberpunkGrid(this.ctx);
+        }
+    }
+}
+
 class Game {
     constructor() {
         this.initGame();           // 初始化游戏
         this.generateSnakeTexture(); // 生成蛇的纹理
         this.setupEventListeners(); // 设置事件监听
         // this.generateQRCode();      // 生成二维码
+        
+        // 增加性能相关的配置
+        this.lastTime = 0;
+        this.frameCount = 0;
+        this.lastGameTick = 0;     // 添加游戏逻辑计时器
+        this.gameTickInterval = 200; // 游戏逻辑更新间隔（毫秒）
+        this.backgroundCache = null;
+        this.lastBackgroundUpdate = 0;
+        this.BACKGROUND_UPDATE_INTERVAL = 200;  // 增加背景更新间隔
+        this.decorationPositions = [];  // 存储装饰元素的固定位置
+        this.initDecorationPositions(); // 初始化装饰元素位置
+        
+        // 初始化 WebGL 渲染器
+        this.renderer = new Renderer(this.canvas);
     }
 
     generateQRCode() {
@@ -397,22 +619,32 @@ class Game {
     setupEventListeners() {
         // 监听键盘事件
         document.addEventListener('keydown', (e) => {
-            // 如果游戏暂停，只响应ESC键
             if (this.isPaused && e.key !== 'Escape') return;
             
-            // 处理方向键和ESC键
             switch (e.key) {
                 case 'ArrowUp':
-                    if (this.snake.direction !== 'down') this.snake.nextDirection = 'up';
+                    if (this.snake.direction !== 'down') {
+                        this.snake.nextDirection = 'up';
+                        e.preventDefault(); // 防止页面滚动
+                    }
                     break;
                 case 'ArrowDown':
-                    if (this.snake.direction !== 'up') this.snake.nextDirection = 'down';
+                    if (this.snake.direction !== 'up') {
+                        this.snake.nextDirection = 'down';
+                        e.preventDefault();
+                    }
                     break;
                 case 'ArrowLeft':
-                    if (this.snake.direction !== 'right') this.snake.nextDirection = 'left';
+                    if (this.snake.direction !== 'right') {
+                        this.snake.nextDirection = 'left';
+                        e.preventDefault();
+                    }
                     break;
                 case 'ArrowRight':
-                    if (this.snake.direction !== 'left') this.snake.nextDirection = 'right';
+                    if (this.snake.direction !== 'left') {
+                        this.snake.nextDirection = 'right';
+                        e.preventDefault();
+                    }
                     break;
                 case 'Escape':
                     this.togglePause();
@@ -453,20 +685,44 @@ class Game {
     }
 
     startGameLoop() {
-        this.gameLoopRunning = true;
-        this.gameLoop();
+        if (!this.gameLoopRunning) {
+            this.gameLoopRunning = true;
+            this.lastTime = 0;  // 重置时间
+            this.lastGameTick = 0;
+            requestAnimationFrame((t) => this.gameLoop(t));
+        }
     }
 
-    gameLoop() {
-        if (!this.gameLoopRunning || this.isPaused) return;
+    gameLoop(timestamp) {
+        if (!this.gameLoopRunning) return;
         
-        this.update();
+        // 如果是第一帧，初始化时间
+        if (!this.lastTime) {
+            this.lastTime = timestamp;
+            this.lastGameTick = timestamp;
+        }
+
+        // 计算时间差
+        const deltaTime = timestamp - this.lastGameTick;
+
+        // 更新游戏逻辑
+        if (!this.isPaused && deltaTime >= this.gameTickInterval) {
+            this.update();
+            this.lastGameTick = timestamp;
+        }
+
+        // 始终更新渲染
         this.draw();
-        setTimeout(() => requestAnimationFrame(() => this.gameLoop()), 200);
+        
+        // 保存当前时间戳
+        this.lastTime = timestamp;
+        
+        // 继续游戏循环
+        requestAnimationFrame((t) => this.gameLoop(t));
     }
 
     update() {
-        if (this.gameOver || this.isPaused) {
+        if (this.gameOver) {
             this.gameLoopRunning = false;
             return;
         }
@@ -488,10 +744,10 @@ class Game {
     }
 
     draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 绘制赛博朋克风格的背景网格
-        this.drawCyberpunkGrid();
+        this.renderer.clear();
+        
+        // 绘制背景
+        this.renderer.drawBackground(this);
 
         // 绘制蛇
         this.snake.position.forEach((segment, index) => {
@@ -513,134 +769,156 @@ class Game {
                     else if (prev.y < curr.y) angle = 0;          // 向下移动
                 }
 
-                this.ctx.save();
-                this.ctx.translate(
-                    segment.x * this.gridSize + this.gridSize/2,
-                    segment.y * this.gridSize + this.gridSize/2
-                );
-                this.ctx.rotate(angle);
-                
                 const texture = index === 0 ? this.snakeHeadTexture : this.snakeBodyTexture;
-                
-                // 添加霓虹效果
-                if (index === 0) {
-                    this.ctx.shadowColor = '#0ff';
-                    this.ctx.shadowBlur = 10;
-                }
-                
-                this.ctx.drawImage(
+                this.renderer.drawSprite(
                     texture,
-                    -this.gridSize/2,
-                    -this.gridSize/2,
+                    segment.x * this.gridSize,
+                    segment.y * this.gridSize,
                     this.gridSize,
-                    this.gridSize
+                    this.gridSize,
+                    angle
                 );
-                
-                this.ctx.restore();
             }
         });
 
-        // 绘制食物时添加霓虹效果
-        const foodImage = this.food.images[this.food.type];
-        if (foodImage.complete) {
-            this.ctx.save();
-            this.ctx.shadowColor = '#0ff';
-            this.ctx.shadowBlur = 15;
-            this.ctx.drawImage(
-                foodImage,
-                this.food.position.x * this.gridSize + 1,
-                this.food.position.y * this.gridSize + 1,
-                this.gridSize - 2,
-                this.gridSize - 2
+        // 绘制食物
+        if (this.food.images[this.food.type].complete) {
+            this.renderer.drawSprite(
+                this.food.images[this.food.type],
+                this.food.position.x * this.gridSize,
+                this.food.position.y * this.gridSize,
+                this.gridSize,
+                this.gridSize
             );
-            this.ctx.restore();
-        }
-
-        // 绘制游戏状态文本
-        if (this.gameOver || this.isPaused) {
-            this.ctx.save();
-            this.ctx.fillStyle = '#0ff';
-            this.ctx.shadowColor = '#0ff';
-            this.ctx.shadowBlur = 10;
-            this.ctx.font = '30px Orbitron';
-            this.ctx.textAlign = 'center';
-            
-            if (this.gameOver) {
-                this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
-            } else if (this.isPaused) {
-                this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
-                this.ctx.font = '20px Orbitron';
-                this.ctx.fillText('Click to Continue', this.canvas.width / 2, this.canvas.height / 2 + 40);
-            }
-            this.ctx.restore();
         }
     }
 
-    // 添加绘制赛博朋克网格的方法
-    drawCyberpunkGrid() {
-        this.ctx.save();
+    drawCachedBackground() {
+        const currentTime = Date.now();
         
-        // 背景渐变 - 保持柔和的背景
-        const bgGradient = this.ctx.createRadialGradient(
+        // 检查是否需要更新背景缓存
+        if (!this.backgroundCache || 
+            currentTime - this.lastBackgroundUpdate > this.BACKGROUND_UPDATE_INTERVAL) {
+            
+            // 创建离屏画布作为缓存
+            if (!this.backgroundCache) {
+                this.backgroundCache = document.createElement('canvas');
+                this.backgroundCache.width = this.canvas.width;
+                this.backgroundCache.height = this.canvas.height;
+            }
+            
+            const bgCtx = this.backgroundCache.getContext('2d');
+            bgCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // 在缓存画布上绘制背景
+            this.drawCyberpunkGrid(bgCtx);
+            
+            this.lastBackgroundUpdate = currentTime;
+        }
+        
+        // 直接绘制缓存的背景
+        this.ctx.drawImage(this.backgroundCache, 0, 0);
+    }
+
+    // 修改背景绘制方法，接受上下文参数
+    drawCyberpunkGrid(ctx = this.ctx) {
+        ctx.save();
+        
+        // 使用预渲染的渐变背景
+        if (!this.bgGradientCache) {
+            this.createBackgroundGradient(ctx);
+        }
+        ctx.drawImage(this.bgGradientCache, 0, 0);
+        
+        // 简化网格线绘制
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+        ctx.lineWidth = 0.5;
+        
+        // 使用单一路径绘制所有网格线
+        ctx.beginPath();
+        for (let x = 0; x <= this.width; x += 4) {
+            ctx.moveTo(x * this.gridSize, 0);
+            ctx.lineTo(x * this.gridSize, this.canvas.height);
+        }
+        for (let y = 0; y <= this.height; y += 4) {
+            ctx.moveTo(0, y * this.gridSize);
+            ctx.lineTo(this.canvas.width, y * this.gridSize);
+        }
+        ctx.stroke();
+
+        // 使用预计算的位置绘制装饰
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+        this.decorationPositions.forEach(({x, y, radius}) => {
+            // 同心圆
+            for (let j = 0; j < 2; j++) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius + j * 20, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // 十字线
+            ctx.beginPath();
+            ctx.moveTo(x - radius, y);
+            ctx.lineTo(x + radius, y);
+            ctx.moveTo(x, y - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.stroke();
+        });
+
+        this.drawCornerDecorations(ctx);
+        this.drawSimplifiedDataStreams(ctx);
+        this.drawSimplifiedScanLines(ctx);
+
+        ctx.restore();
+    }
+
+    // 预渲染背景渐变
+    createBackgroundGradient(ctx) {
+        this.bgGradientCache = document.createElement('canvas');
+        this.bgGradientCache.width = this.canvas.width;
+        this.bgGradientCache.height = this.canvas.height;
+        const gradCtx = this.bgGradientCache.getContext('2d');
+        
+        const gradient = gradCtx.createRadialGradient(
             this.canvas.width/2, this.canvas.height/2, 0,
             this.canvas.width/2, this.canvas.height/2, this.canvas.width/2
         );
-        bgGradient.addColorStop(0, 'rgba(0, 20, 30, 0.2)');
-        bgGradient.addColorStop(1, 'rgba(0, 10, 20, 0.3)');
-        this.ctx.fillStyle = bgGradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        gradient.addColorStop(0, 'rgba(0, 20, 30, 0.2)');
+        gradient.addColorStop(1, 'rgba(0, 10, 20, 0.3)');
         
-        // 简化网格 - 只保留主要网格线
-        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
-        this.ctx.lineWidth = 0.5;
-        
-        // 只绘制较少的垂直和水平线
-        for (let x = 0; x <= this.width; x += 4) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x * this.gridSize, 0);
-            this.ctx.lineTo(x * this.gridSize, this.canvas.height);
-            this.ctx.stroke();
-        }
-        
-        for (let y = 0; y <= this.height; y += 4) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y * this.gridSize);
-            this.ctx.lineTo(this.canvas.width, y * this.gridSize);
-            this.ctx.stroke();
-        }
+        gradCtx.fillStyle = gradient;
+        gradCtx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
 
-        // 保留但简化科技感装饰
-        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
-        for (let i = 0; i < 2; i++) { // 减少装饰元素数量
-            const x = Math.random() * this.canvas.width;
-            const y = Math.random() * this.canvas.height;
-            const radius = Math.random() * 40 + 30;
-            
-            // 简化同心圆
-            for (let j = 0; j < 2; j++) {
-                this.ctx.beginPath();
-                this.ctx.arc(x, y, radius + j * 20, 0, Math.PI * 2);
-                this.ctx.stroke();
+    // 优化数据流效果
+    drawSimplifiedDataStreams(ctx) {
+        const time = (Date.now() / 1000) % 10000;
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        
+        // 使用单一路径绘制所有数据流
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+            const x = ((Math.sin(time * 0.3 + i) + 1) * 0.5) * this.canvas.width;
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, this.canvas.height);
+        }
+        ctx.stroke();
+        
+        // 批量绘制数据点
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+        const pointCount = 5;
+        for (let i = 0; i < 4; i++) {
+            const x = ((Math.sin(time * 0.3 + i) + 1) * 0.5) * this.canvas.width;
+            for (let j = 0; j < pointCount; j++) {
+                const y = (j / (pointCount - 1)) * this.canvas.height;
+                ctx.fillRect(x - 1, y - 1, 2, 2);
             }
-
-            // 简化十字线
-            this.ctx.beginPath();
-            this.ctx.moveTo(x - radius, y);
-            this.ctx.lineTo(x + radius, y);
-            this.ctx.moveTo(x, y - radius);
-            this.ctx.lineTo(x, y + radius);
-            this.ctx.stroke();
         }
-
-        this.drawCornerDecorations();
-        this.drawSimplifiedDataStreams();
-        this.drawSimplifiedScanLines();
-
-        this.ctx.restore();
     }
 
     // 添加角落装饰
-    drawCornerDecorations() {
+    drawCornerDecorations(ctx = this.ctx) {
         const size = 40;
         const corners = [
             [0, 0], // 左上
@@ -649,64 +927,51 @@ class Game {
             [this.canvas.width - size, this.canvas.height - size] // 右下
         ];
 
-        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
         corners.forEach(([x, y]) => {
             // L形边角
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, y + size);
-            this.ctx.lineTo(x, y);
-            this.ctx.lineTo(x + size, y);
-            this.ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y + size);
+            ctx.lineTo(x, y);
+            ctx.lineTo(x + size, y);
+            ctx.stroke();
 
             // 装饰性小圆圈
-            this.ctx.beginPath();
-            this.ctx.arc(x + size/2, y + size/2, 5, 0, Math.PI * 2);
-            this.ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, 5, 0, Math.PI * 2);
+            ctx.stroke();
         });
     }
 
-    // 简化数据流效果
-    drawSimplifiedDataStreams() {
-        const time = Date.now() / 1000;
-        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
-        this.ctx.lineWidth = 1;
-        
-        // 减少数据流数量
-        for (let i = 0; i < 4; i++) {
-            const x = (Math.sin(time * 0.3 + i) + 1) * this.canvas.width / 2;
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.canvas.height);
-            this.ctx.stroke();
-
-            // 简化数据点
-            for (let j = 0; j < 5; j++) {
-                const y = (j / 4) * this.canvas.height;
-                this.ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
-                this.ctx.fillRect(x - 1, y - 1, 2, 2);
-            }
-        }
+    // 初始化装饰元素的固定位置
+    initDecorationPositions() {
+        // 预计算2个装饰圆的位置
+        this.decorationPositions = Array(2).fill().map(() => ({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height,
+            radius: Math.random() * 40 + 30
+        }));
     }
 
-    // 简化扫描线效果
-    drawSimplifiedScanLines() {
-        // 主扫描线
-        const scanPos = (Date.now() % 3000) / 3000 * this.canvas.height;
-        const scanGradient = this.ctx.createLinearGradient(0, scanPos - 5, 0, scanPos + 5);
-        scanGradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
-        scanGradient.addColorStop(0.5, 'rgba(0, 255, 255, 0.1)');
-        scanGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+    // 优化扫描线效果
+    drawSimplifiedScanLines(ctx = this.ctx) {
+        const currentTime = Date.now() % 3000;
+        const scanPos = (currentTime / 3000) * this.canvas.height;
+        
+        // 只在扫描线附近绘制渐变
+        const scanHeight = 10;
+        const scanStart = Math.max(0, scanPos - scanHeight);
+        const scanEnd = Math.min(this.canvas.height, scanPos + scanHeight);
+        
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+        ctx.fillRect(0, scanStart, this.canvas.width, scanEnd - scanStart);
 
-        this.ctx.fillStyle = scanGradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 减少闪烁点的数量
-        for (let i = 0; i < 15; i++) {
-            const x = Math.random() * this.canvas.width;
-            const y = Math.random() * this.canvas.height;
-            this.ctx.fillStyle = `rgba(0, 255, 255, ${Math.random() * 0.2})`;
-            this.ctx.fillRect(x, y, 1, 1);
+        // 使用固定间隔的闪烁点
+        const pointCount = 15;
+        for (let i = 0; i < pointCount; i++) {
+            const x = (i / pointCount) * this.canvas.width;
+            const y = (Math.sin(currentTime * 0.01 + i) + 1) * 0.5 * this.canvas.height;
+            ctx.fillRect(x, y, 1, 1);
         }
     }
 }
