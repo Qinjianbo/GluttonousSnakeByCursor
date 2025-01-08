@@ -138,9 +138,8 @@ class Game {
 
     initGame() {
         this.canvas = document.getElementById('gameCanvas');
-        // 生成随机画布尺寸
-        const randomWidth = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
-        const randomHeight = Math.floor(Math.random() * (1000 - 400 + 1)) + 400;
+        const randomWidth = 400;
+        const randomHeight = 400;
         this.canvas.width = randomWidth;
         this.canvas.height = randomHeight;
         
