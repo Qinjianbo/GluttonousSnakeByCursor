@@ -96,6 +96,7 @@ class Food {
 class Game {
     constructor() {
         this.initGame();
+        this.generateSnakeTexture();
         this.setupEventListeners();
         this.generateQRCode();
     }
@@ -134,6 +135,149 @@ class Game {
                 console.error('Error generating QR code:', error);
             }
         }, 500); // 等待500毫秒确保库加载完成
+    }
+
+    generateSnakeTexture() {
+        // 创建蛇身纹理
+        const bodyCanvas = document.createElement('canvas');
+        bodyCanvas.width = this.gridSize;
+        bodyCanvas.height = this.gridSize;
+        const bodyCtx = bodyCanvas.getContext('2d');
+        
+        // 蛇身主体颜色
+        bodyCtx.fillStyle = '#4CAF50';
+        bodyCtx.fillRect(0, 0, this.gridSize, this.gridSize);
+        
+        // 绘制鳞片纹理
+        bodyCtx.fillStyle = '#388E3C';
+        const scaleSize = this.gridSize / 4;
+        for (let i = 0; i < 2; i++) {
+            for (let j = 0; j < 2; j++) {
+                bodyCtx.beginPath();
+                bodyCtx.ellipse(
+                    i * this.gridSize/2 + scaleSize,
+                    j * this.gridSize/2 + scaleSize,
+                    scaleSize/2,
+                    scaleSize,
+                    0,
+                    0,
+                    Math.PI * 2
+                );
+                bodyCtx.fill();
+            }
+        }
+        
+        // 创建蛇头纹理
+        const headCanvas = document.createElement('canvas');
+        headCanvas.width = this.gridSize;
+        headCanvas.height = this.gridSize;
+        const headCtx = headCanvas.getContext('2d');
+        
+        // 绘制蛇头（椭圆形）
+        headCtx.fillStyle = '#66BB6A';
+        headCtx.beginPath();
+        headCtx.ellipse(
+            this.gridSize/2,
+            this.gridSize/2,
+            this.gridSize/2,
+            this.gridSize/2 - 2,
+            0,
+            0,
+            Math.PI * 2
+        );
+        headCtx.fill();
+        
+        // 添加渐变效果使头部更立体
+        const gradient = headCtx.createRadialGradient(
+            this.gridSize/2, this.gridSize/2 - 2, 0,
+            this.gridSize/2, this.gridSize/2, this.gridSize/2
+        );
+        gradient.addColorStop(0, '#7CB342');
+        gradient.addColorStop(1, '#558B2F');
+        headCtx.fillStyle = gradient;
+        headCtx.fill();
+        
+        // 绘制眼睛（稍微改变位置和大小）
+        headCtx.fillStyle = 'white';
+        const eyeSize = this.gridSize / 5;
+        headCtx.beginPath();
+        headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
+        headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, eyeSize, 0, Math.PI * 2);
+        headCtx.fill();
+        
+        // 绘制瞳孔（添加高光效果）
+        headCtx.fillStyle = 'black';
+        const pupilSize = eyeSize / 2;
+        headCtx.beginPath();
+        headCtx.arc(this.gridSize/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
+        headCtx.arc(this.gridSize*2/3, this.gridSize/2 - 2, pupilSize, 0, Math.PI * 2);
+        headCtx.fill();
+        
+        // 添加眼睛高光
+        headCtx.fillStyle = 'white';
+        const highlightSize = pupilSize / 3;
+        headCtx.beginPath();
+        headCtx.arc(this.gridSize/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
+        headCtx.arc(this.gridSize*2/3 - pupilSize/2, this.gridSize/2 - 3, highlightSize, 0, Math.PI * 2);
+        headCtx.fill();
+        
+        // 绘制舌头（更细长的分叉舌头）
+        headCtx.fillStyle = '#FF1744';
+        headCtx.beginPath();
+        const tongueStart = this.gridSize * 0.7;
+        const tongueLength = this.gridSize * 0.4;
+        const tongueWidth = this.gridSize * 0.1;
+        
+        // 舌头的中心线
+        headCtx.moveTo(this.gridSize/2, tongueStart);
+        // 右分叉
+        headCtx.quadraticCurveTo(
+            this.gridSize/2 + tongueWidth,
+            tongueStart + tongueLength * 0.6,
+            this.gridSize/2 + tongueWidth * 2,
+            tongueStart + tongueLength
+        );
+        // 回到中心
+        headCtx.quadraticCurveTo(
+            this.gridSize/2 + tongueWidth,
+            tongueStart + tongueLength * 0.7,
+            this.gridSize/2,
+            tongueStart + tongueLength * 0.5
+        );
+        // 左分叉
+        headCtx.quadraticCurveTo(
+            this.gridSize/2 - tongueWidth,
+            tongueStart + tongueLength * 0.7,
+            this.gridSize/2 - tongueWidth * 2,
+            tongueStart + tongueLength
+        );
+        // 回到起点
+        headCtx.quadraticCurveTo(
+            this.gridSize/2 - tongueWidth,
+            tongueStart + tongueLength * 0.6,
+            this.gridSize/2,
+            tongueStart
+        );
+        headCtx.fill();
+
+        // 创建并存储纹理
+        this.snakeBodyTexture = new Image();
+        this.snakeHeadTexture = new Image();
+        
+        // 设置加载完成标志
+        let loadedCount = 0;
+        const onLoad = () => {
+            loadedCount++;
+            if (loadedCount === 2) {
+                this.snakeTextureLoaded = true;
+            }
+        };
+        
+        this.snakeBodyTexture.onload = onLoad;
+        this.snakeHeadTexture.onload = onLoad;
+        
+        this.snakeBodyTexture.src = bodyCanvas.toDataURL();
+        this.snakeHeadTexture.src = headCanvas.toDataURL();
     }
 
     initGame() {
@@ -251,14 +395,43 @@ class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // 绘制蛇
-        this.ctx.fillStyle = 'green';
-        this.snake.position.forEach(segment => {
-            this.ctx.fillRect(
-                segment.x * this.gridSize,
-                segment.y * this.gridSize,
-                this.gridSize - 1,
-                this.gridSize - 1
-            );
+        this.snake.position.forEach((segment, index) => {
+            if (this.snakeTextureLoaded) {
+                let angle = 0;
+                if (index === 0) {  // 蛇头 - 调整方向
+                    switch(this.snake.direction) {
+                        case 'up': angle = Math.PI; break;     // 向上时头朝上（180度）
+                        case 'right': angle = -Math.PI/2; break; // 向右时头朝右（-90度）
+                        case 'down': angle = 0; break;         // 向下时头朝下（0度）
+                        case 'left': angle = Math.PI/2; break;  // 向左时头朝左（90度）
+                    }
+                } else {  // 蛇身 - 调整方向
+                    const prev = this.snake.position[index - 1];
+                    const curr = segment;
+                    if (prev.x > curr.x) angle = Math.PI/2;      // 向左移动
+                    else if (prev.x < curr.x) angle = -Math.PI/2; // 向右移动
+                    else if (prev.y > curr.y) angle = Math.PI;    // 向上移动
+                    else if (prev.y < curr.y) angle = 0;          // 向下移动
+                }
+
+                this.ctx.save();
+                this.ctx.translate(
+                    segment.x * this.gridSize + this.gridSize/2,
+                    segment.y * this.gridSize + this.gridSize/2
+                );
+                this.ctx.rotate(angle);
+                
+                const texture = index === 0 ? this.snakeHeadTexture : this.snakeBodyTexture;
+                this.ctx.drawImage(
+                    texture,
+                    -this.gridSize/2,
+                    -this.gridSize/2,
+                    this.gridSize,
+                    this.gridSize
+                );
+                
+                this.ctx.restore();
+            }
         });
 
         // 绘制食物图片
