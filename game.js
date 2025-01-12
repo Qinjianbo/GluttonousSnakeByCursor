@@ -1,22 +1,24 @@
 class Snake {
     constructor() {
-        this.reset();
+        this.position = [];
+        this.direction = 'right';
+        this.nextDirection = 'right';
     }
 
     reset(width, height) {
-        // 确保蛇的初始位置不会太靠近边界，留出margin个格子的安全距离
-        const margin = 5;
-        const x = Math.floor(Math.random() * (width - 2 * margin)) + margin;
-        const y = Math.floor(Math.random() * (height - 2 * margin)) + margin;
+        // 设置蛇的初始位置在中间偏左
+        const centerY = Math.floor(height / 2);
+        const startX = Math.floor(width / 4);
         
-        // 初始化蛇的位置，一开始只有一个头部
-        this.position = [{ x, y }];
+        // 初始化蛇的三个部分：头、身体、尾巴
+        this.position = [
+            { x: startX + 2, y: centerY },     // 头部
+            { x: startX + 1, y: centerY },     // 身体
+            { x: startX, y: centerY }          // 尾巴
+        ];
         
-        // 随机选择初始方向
-        const directions = ['up', 'down', 'left', 'right'];
-        this.direction = directions[Math.floor(Math.random() * directions.length)];
-        // nextDirection用于存储下一步的移动方向，防止在一次更新周期内多次改变方向
-        this.nextDirection = this.direction;
+        this.direction = 'right';
+        this.nextDirection = 'right';
     }
 
     move() {
