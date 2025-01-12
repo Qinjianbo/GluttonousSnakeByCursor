@@ -338,6 +338,9 @@ class Game {
         
         // 初始化 WebGL 渲染器
         this.renderer = new Renderer(this.canvas);
+        this.headAnimationFrame = 0;
+        this.headAnimationTimer = 0;
+        this.HEAD_ANIMATION_INTERVAL = 200; // 每200ms切换一次帧
     }
 
     generateQRCode() {
@@ -377,212 +380,63 @@ class Game {
     }
 
     generateSnakeTexture() {
-        // 创建蛇身纹理
-        const bodyCanvas = document.createElement('canvas');
-        bodyCanvas.width = this.gridSize;
-        bodyCanvas.height = this.gridSize;
-        const bodyCtx = bodyCanvas.getContext('2d');
-        
-        // 蛇身主体颜色 - 使用更自然的绿色
-        bodyCtx.fillStyle = '#2E7D32';  // 深绿色作为基础色
-        bodyCtx.fillRect(0, 0, this.gridSize, this.gridSize);
-        
-        // 绘制鳞片纹理 - 使用略深的色调
-        bodyCtx.fillStyle = '#1B5E20';  // 更深的绿色作为鳞片
-        const scaleSize = this.gridSize / 4;
-        for (let i = 0; i < 2; i++) {
-            for (let j = 0; j < 2; j++) {
-                bodyCtx.beginPath();
-                bodyCtx.ellipse(
-                    i * this.gridSize/2 + scaleSize,
-                    j * this.gridSize/2 + scaleSize,
-                    scaleSize/2,
-                    scaleSize,
-                    0,
-                    0,
-                    Math.PI * 2
-                );
-                bodyCtx.fill();
-            }
-        }
-        
-        // 创建蛇头纹理
-        const headCanvas = document.createElement('canvas');
-        headCanvas.width = this.gridSize;
-        headCanvas.height = this.gridSize;
-        const headCtx = headCanvas.getContext('2d');
-        
-        // 绘制蛇头（更尖锐的椭圆形）
-        headCtx.fillStyle = '#388E3C';
-        headCtx.beginPath();
-        // 使用贝塞尔曲线绘制更尖锐的头部形状
-        const x = this.gridSize/2;
-        const y = this.gridSize/2;
-        const width = this.gridSize/2;
-        const height = this.gridSize/2 - 2;
-        
-        headCtx.moveTo(x - width, y);
-        // 左下部分
-        headCtx.quadraticCurveTo(x - width/2, y + height, x, y + height);
-        // 右下部分
-        headCtx.quadraticCurveTo(x + width/2, y + height, x + width, y);
-        // 右上部分（更尖锐）
-        headCtx.quadraticCurveTo(x + width/1.5, y - height/1.2, x, y - height);
-        // 左上部分（更尖锐）
-        headCtx.quadraticCurveTo(x - width/1.5, y - height/1.2, x - width, y);
-        headCtx.closePath();
-        headCtx.fill();
-        
-        // 添加更强烈的渐变效果
-        const gradient = headCtx.createRadialGradient(
-            this.gridSize/2, this.gridSize/2 - 2, 0,
-            this.gridSize/2, this.gridSize/2, this.gridSize/2
-        );
-        gradient.addColorStop(0, '#43A047');
-        gradient.addColorStop(0.4, '#388E3C');
-        gradient.addColorStop(1, '#1B5E20');  // 更深的边缘色
-        headCtx.fillStyle = gradient;
-        headCtx.fill();
-        
-        // 绘制更凶狠的眼睛（细长的形状）
-        headCtx.fillStyle = '#FFFFFF';
-        const eyeWidth = this.gridSize / 4;
-        const eyeHeight = this.gridSize / 6;
-        
-        // 左眼
-        headCtx.beginPath();
-        headCtx.ellipse(
-            this.gridSize/3, 
-            this.gridSize/2 - 2,
-            eyeWidth/2,
-            eyeHeight/2,
-            -Math.PI/6,  // 稍微倾斜
-            0,
-            Math.PI * 2
-        );
-        // 右眼
-        headCtx.ellipse(
-            this.gridSize*2/3,
-            this.gridSize/2 - 2,
-            eyeWidth/2,
-            eyeHeight/2,
-            Math.PI/6,  // 稍微倾斜
-            0,
-            Math.PI * 2
-        );
-        headCtx.fill();
-        
-        // 绘制竖瞳
-        headCtx.fillStyle = '#000000';
-        const pupilWidth = eyeWidth / 6;
-        const pupilHeight = eyeHeight * 1.2;
-        
-        // 左瞳孔
-        headCtx.beginPath();
-        headCtx.ellipse(
-            this.gridSize/3,
-            this.gridSize/2 - 2,
-            pupilWidth,
-            pupilHeight,
-            0,
-            0,
-            Math.PI * 2
-        );
-        // 右瞳孔
-        headCtx.ellipse(
-            this.gridSize*2/3,
-            this.gridSize/2 - 2,
-            pupilWidth,
-            pupilHeight,
-            0,
-            0,
-            Math.PI * 2
-        );
-        headCtx.fill();
-        
-        // 添加眉毛（显得更具攻击性）
-        headCtx.strokeStyle = '#1B5E20';
-        headCtx.lineWidth = 1;
-        
-        // 左眉毛
-        headCtx.beginPath();
-        headCtx.moveTo(this.gridSize/4, this.gridSize/3);
-        headCtx.quadraticCurveTo(
-            this.gridSize/3,
-            this.gridSize/4,
-            this.gridSize/2.5,
-            this.gridSize/3
-        );
-        headCtx.stroke();
-        
-        // 右眉毛
-        headCtx.beginPath();
-        headCtx.moveTo(this.gridSize*3/4, this.gridSize/3);
-        headCtx.quadraticCurveTo(
-            this.gridSize*2/3,
-            this.gridSize/4,
-            this.gridSize*0.6,
-            this.gridSize/3
-        );
-        headCtx.stroke();
-        
-        // 绘制更锐利的舌头
-        headCtx.fillStyle = '#D32F2F';  // 更深的红色
-        headCtx.beginPath();
-        const tongueStart = this.gridSize * 0.7;
-        const tongueLength = this.gridSize * 0.5;  // 稍微加长
-        const tongueWidth = this.gridSize * 0.08;  // 稍微变细
-        
-        // 绘制更尖锐的分叉舌头
-        headCtx.moveTo(this.gridSize/2, tongueStart);
-        // 右分叉（更尖锐）
-        headCtx.quadraticCurveTo(
-            this.gridSize/2 + tongueWidth,
-            tongueStart + tongueLength * 0.5,
-            this.gridSize/2 + tongueWidth * 3,
-            tongueStart + tongueLength
-        );
-        // 回到中心
-        headCtx.quadraticCurveTo(
-            this.gridSize/2 + tongueWidth,
-            tongueStart + tongueLength * 0.6,
-            this.gridSize/2,
-            tongueStart + tongueLength * 0.4
-        );
-        // 左分叉（更尖锐）
-        headCtx.quadraticCurveTo(
-            this.gridSize/2 - tongueWidth,
-            tongueStart + tongueLength * 0.6,
-            this.gridSize/2 - tongueWidth * 3,
-            tongueStart + tongueLength
-        );
-        // 回到起点
-        headCtx.quadraticCurveTo(
-            this.gridSize/2 - tongueWidth,
-            tongueStart + tongueLength * 0.5,
-            this.gridSize/2,
-            tongueStart
-        );
-        headCtx.fill();
-
-        // 创建并存储纹理
-        this.snakeBodyTexture = new Image();
+        // 创建蛇的纹理图片
         this.snakeHeadTexture = new Image();
+        this.snakeBodyTexture = new Image();
+        this.snakeTailTexture = new Image();
         
-        // 设置加载完成标志
+        // 设置图片加载完成的标志
+        this.snakeTextureLoaded = false;
         let loadedCount = 0;
+        
         const onLoad = () => {
             loadedCount++;
-            if (loadedCount === 2) {
+            if (loadedCount === 3) {
                 this.snakeTextureLoaded = true;
             }
         };
+
+        // 创建临时画布进行图片切片
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        const spriteImage = new Image();
         
-        this.snakeBodyTexture.onload = onLoad;
-        this.snakeHeadTexture.onload = onLoad;
-        
-        this.snakeBodyTexture.src = bodyCanvas.toDataURL();
-        this.snakeHeadTexture.src = headCanvas.toDataURL();
+        spriteImage.onload = () => {
+            tempCanvas.width = 20;
+            tempCanvas.height = 20;
+
+            // 切割头部（使用第一个蛇头）
+            tempCtx.clearRect(0, 0, 20, 20);
+            tempCtx.drawImage(spriteImage, 0, 0, 20, 20, 0, 0, 20, 20);
+            this.snakeHeadTexture.src = tempCanvas.toDataURL();
+            this.snakeHeadTexture.onload = onLoad;
+
+            // 切割身体（右下方的方形部分）
+            tempCtx.clearRect(0, 0, 20, 20);
+            tempCtx.drawImage(spriteImage, 60, 40, 20, 20, 0, 0, 20, 20);
+            this.snakeBodyTexture.src = tempCanvas.toDataURL();
+            this.snakeBodyTexture.onload = onLoad;
+
+            // 切割尾部（右下方的尾部）
+            tempCtx.clearRect(0, 0, 20, 20);
+            tempCtx.drawImage(spriteImage, 40, 40, 20, 20, 0, 0, 20, 20);
+            this.snakeTailTexture.src = tempCanvas.toDataURL();
+            this.snakeTailTexture.onload = onLoad;
+
+            // 可以添加蛇头动画帧的处理
+            this.headFrames = [];
+            for (let i = 0; i < 3; i++) {
+                const frameCanvas = document.createElement('canvas');
+                frameCanvas.width = 20;
+                frameCanvas.height = 20;
+                const frameCtx = frameCanvas.getContext('2d');
+                frameCtx.drawImage(spriteImage, i * 20, 0, 20, 20, 0, 0, 20, 20);
+                this.headFrames.push(frameCanvas.toDataURL());
+            }
+        };
+
+        // 加载原始图片
+        spriteImage.src = 'images/snake.png';
     }
 
     initGame() {
@@ -749,27 +603,50 @@ class Game {
         // 绘制背景
         this.renderer.drawBackground(this);
 
+        // 更新蛇头动画
+        const currentTime = Date.now();
+        if (currentTime - this.headAnimationTimer > this.HEAD_ANIMATION_INTERVAL) {
+            this.headAnimationFrame = (this.headAnimationFrame + 1) % 3;
+            this.headAnimationTimer = currentTime;
+            // 更新蛇头纹理
+            if (this.headFrames && this.headFrames.length > 0) {
+                this.snakeHeadTexture.src = this.headFrames[this.headAnimationFrame];
+            }
+        }
+
         // 绘制蛇
         this.snake.position.forEach((segment, index) => {
             if (this.snakeTextureLoaded) {
                 let angle = 0;
-                if (index === 0) {
+                
+                // 计算方向角度
+                if (index === 0) {  // 头部
                     switch(this.snake.direction) {
-                        case 'up': angle = Math.PI; break;     // 向上时头朝上（180度）
-                        case 'right': angle = -Math.PI/2; break; // 向右时头朝右（-90度）
-                        case 'down': angle = 0; break;         // 向下时头朝下（0度）
-                        case 'left': angle = Math.PI/2; break;  // 向左时头朝左（90度）
+                        case 'up': angle = Math.PI; break;
+                        case 'right': angle = -Math.PI/2; break;
+                        case 'down': angle = 0; break;
+                        case 'left': angle = Math.PI/2; break;
                     }
-                } else {
+                } else {  // 身体和尾部
                     const prev = this.snake.position[index - 1];
                     const curr = segment;
-                    if (prev.x > curr.x) angle = Math.PI/2;      // 向左移动
-                    else if (prev.x < curr.x) angle = -Math.PI/2; // 向右移动
-                    else if (prev.y > curr.y) angle = Math.PI;    // 向上移动
-                    else if (prev.y < curr.y) angle = 0;          // 向下移动
+                    if (prev.x > curr.x) angle = Math.PI/2;
+                    else if (prev.x < curr.x) angle = -Math.PI/2;
+                    else if (prev.y > curr.y) angle = Math.PI;
+                    else if (prev.y < curr.y) angle = 0;
                 }
 
-                const texture = index === 0 ? this.snakeHeadTexture : this.snakeBodyTexture;
+                // 选择正确的纹理
+                let texture;
+                if (index === 0) {
+                    texture = this.snakeHeadTexture;  // 头部
+                } else if (index === this.snake.position.length - 1) {
+                    texture = this.snakeTailTexture;  // 尾部
+                } else {
+                    texture = this.snakeBodyTexture;  // 身体
+                }
+
+                // 绘制蛇的部分
                 this.renderer.drawSprite(
                     texture,
                     segment.x * this.gridSize,
