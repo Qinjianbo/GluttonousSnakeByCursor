@@ -389,6 +389,7 @@ class Game {
         this.snakeTextureLoaded = false;
         let loadedCount = 0;
         
+        // 加载计数器
         const onLoad = () => {
             loadedCount++;
             if (loadedCount === 3) {
@@ -396,47 +397,25 @@ class Game {
             }
         };
 
-        // 创建临时画布进行图片切片
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        const spriteImage = new Image();
-        
-        spriteImage.onload = () => {
-            tempCanvas.width = 20;
-            tempCanvas.height = 20;
+        // 加载蛇头动画帧
+        this.headFrames = [];
+        for (let i = 1; i <= 3; i++) {
+            const headFrame = new Image();
+            headFrame.src = `images/head${i}.png`;
+            this.headFrames.push(headFrame);
+        }
 
-            // 切割头部（使用第一个蛇头）
-            tempCtx.clearRect(0, 0, 20, 20);
-            tempCtx.drawImage(spriteImage, 0, 0, 20, 20, 0, 0, 20, 20);
-            this.snakeHeadTexture.src = tempCanvas.toDataURL();
-            this.snakeHeadTexture.onload = onLoad;
+        // 设置初始蛇头纹理为第一帧
+        this.snakeHeadTexture.onload = onLoad;
+        this.snakeHeadTexture.src = 'images/head1.png';
 
-            // 切割身体（右下方的方形部分）
-            tempCtx.clearRect(0, 0, 20, 20);
-            tempCtx.drawImage(spriteImage, 60, 40, 20, 20, 0, 0, 20, 20);
-            this.snakeBodyTexture.src = tempCanvas.toDataURL();
-            this.snakeBodyTexture.onload = onLoad;
+        // 加载身体纹理
+        this.snakeBodyTexture.onload = onLoad;
+        this.snakeBodyTexture.src = 'images/body.png';
 
-            // 切割尾部（右下方的尾部）
-            tempCtx.clearRect(0, 0, 20, 20);
-            tempCtx.drawImage(spriteImage, 40, 40, 20, 20, 0, 0, 20, 20);
-            this.snakeTailTexture.src = tempCanvas.toDataURL();
-            this.snakeTailTexture.onload = onLoad;
-
-            // 可以添加蛇头动画帧的处理
-            this.headFrames = [];
-            for (let i = 0; i < 3; i++) {
-                const frameCanvas = document.createElement('canvas');
-                frameCanvas.width = 20;
-                frameCanvas.height = 20;
-                const frameCtx = frameCanvas.getContext('2d');
-                frameCtx.drawImage(spriteImage, i * 20, 0, 20, 20, 0, 0, 20, 20);
-                this.headFrames.push(frameCanvas.toDataURL());
-            }
-        };
-
-        // 加载原始图片
-        spriteImage.src = 'images/snake.png';
+        // 加载尾部纹理
+        this.snakeTailTexture.onload = onLoad;
+        this.snakeTailTexture.src = 'images/tail.png';
     }
 
     initGame() {
@@ -608,10 +587,8 @@ class Game {
         if (currentTime - this.headAnimationTimer > this.HEAD_ANIMATION_INTERVAL) {
             this.headAnimationFrame = (this.headAnimationFrame + 1) % 3;
             this.headAnimationTimer = currentTime;
-            // 更新蛇头纹理
-            if (this.headFrames && this.headFrames.length > 0) {
-                this.snakeHeadTexture.src = this.headFrames[this.headAnimationFrame];
-            }
+            // 更新蛇头纹理为当前帧
+            this.snakeHeadTexture.src = this.headFrames[this.headAnimationFrame].src;
         }
 
         // 绘制蛇
