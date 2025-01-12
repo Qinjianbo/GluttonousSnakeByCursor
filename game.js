@@ -401,7 +401,7 @@ class Game {
         this.headFrames = [];
         for (let i = 1; i <= 3; i++) {
             const headFrame = new Image();
-            headFrame.src = `images/head${i}.png`;
+            headFrame.src = `images/head${i}.png`;  // head1.png, head2.png, head3.png
             this.headFrames.push(headFrame);
         }
 
@@ -416,6 +416,20 @@ class Game {
         // 加载尾部纹理
         this.snakeTailTexture.onload = onLoad;
         this.snakeTailTexture.src = 'images/tail.png';
+
+        // 加载转弯纹理
+        this.turnTextures = {
+            rightbottom: new Image(),
+            righttop: new Image(),
+            leftbottom: new Image(),
+            lefttop: new Image()
+        };
+
+        // 使用正确的转弯图片路径
+        this.turnTextures.rightbottom.src = 'images/rightbottom.png';
+        this.turnTextures.righttop.src = 'images/righttop.png';
+        this.turnTextures.leftbottom.src = 'images/leftbottom.png';
+        this.turnTextures.lefttop.src = 'images/lefttop.png';
     }
 
     initGame() {
@@ -595,32 +609,73 @@ class Game {
         this.snake.position.forEach((segment, index) => {
             if (this.snakeTextureLoaded) {
                 let angle = 0;
-                
-                // 计算方向角度
+                let texture = this.snakeBodyTexture; // 默认使用身体纹理
+
                 if (index === 0) {  // 头部
+                    texture = this.snakeHeadTexture;
                     switch(this.snake.direction) {
                         case 'up': angle = Math.PI; break;
                         case 'right': angle = -Math.PI/2; break;
                         case 'down': angle = 0; break;
                         case 'left': angle = Math.PI/2; break;
                     }
-                } else {  // 身体和尾部
+                } else if (index === this.snake.position.length - 1) {  // 尾部
+                    texture = this.snakeTailTexture;
+                    // 获取尾部前一个节点
+                    const prevSegment = this.snake.position[index - 1];
+                    // 根据前一个节点的位置确定尾部方向
+                    if (prevSegment.x > segment.x) {
+                        angle = Math.PI/2;   // 尾部朝左（因为前一节在右边）
+                    } else if (prevSegment.x < segment.x) {
+                        angle = -Math.PI/2;  // 尾部朝右（因为前一节在左边）
+                    } else if (prevSegment.y > segment.y) {
+                        angle = Math.PI;     // 尾部朝上（因为前一节在下边）
+                    } else if (prevSegment.y < segment.y) {
+                        angle = 0;           // 尾部朝下（因为前一节在上边）
+                    }
+                } else {  // 身体和转弯
                     const prev = this.snake.position[index - 1];
                     const curr = segment;
-                    if (prev.x > curr.x) angle = Math.PI/2;
-                    else if (prev.x < curr.x) angle = -Math.PI/2;
-                    else if (prev.y > curr.y) angle = Math.PI;
-                    else if (prev.y < curr.y) angle = 0;
-                }
+                    const next = this.snake.position[index + 1];
 
-                // 选择正确的纹理
-                let texture;
-                if (index === 0) {
-                    texture = this.snakeHeadTexture;  // 头部
-                } else if (index === this.snake.position.length - 1) {
-                    texture = this.snakeTailTexture;  // 尾部
-                } else {
-                    texture = this.snakeBodyTexture;  // 身体
+                    if (prev.x !== next.x && prev.y !== next.y) {
+                        // 转弯判断
+                        if (prev.y === curr.y) {  // 水平移动到转弯点
+                            if (prev.x < curr.x) {  // 从左向右移动
+                                if (next.y < curr.y) {  // 向上转
+                                    texture = this.turnTextures.righttop;
+                                } else {  // 向下转
+                                    texture = this.turnTextures.rightbottom;
+                                }
+                            } else {  // 从右向左移动
+                                if (next.y < curr.y) {  // 向上转
+                                    texture = this.turnTextures.lefttop;
+                                } else {  // 向下转
+                                    texture = this.turnTextures.leftbottom;
+                                }
+                            }
+                        } else {  // 垂直移动到转弯点
+                            if (prev.y < curr.y) {  // 从上向下移动
+                                if (next.x < curr.x) {  // 向左转
+                                    texture = this.turnTextures.righttop;
+                                } else {  // 向右转
+                                    texture = this.turnTextures.lefttop;
+                                }
+                            } else {  // 从下向上移动
+                                if (next.x < curr.x) {  // 向左转
+                                    texture = this.turnTextures.rightbottom;
+                                } else {  // 向右转
+                                    texture = this.turnTextures.leftbottom;
+                                }
+                            }
+                        }
+                    } else {
+                        // 直线移动部分保持不变
+                        if (prev.x > curr.x) angle = Math.PI/2;
+                        else if (prev.x < curr.x) angle = -Math.PI/2;
+                        else if (prev.y > curr.y) angle = Math.PI;
+                        else if (prev.y < curr.y) angle = 0;
+                    }
                 }
 
                 // 绘制蛇的部分
