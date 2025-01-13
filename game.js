@@ -343,6 +343,12 @@ class Game {
         this.headAnimationFrame = 0;
         this.headAnimationTimer = 0;
         this.HEAD_ANIMATION_INTERVAL = 200; // 每200ms切换一次帧
+        
+        // 添加速度相关的属性
+        this.normalSpeed = 200;    // 正常速度间隔
+        this.fastSpeed = 50;      // 加速时的间隔
+        this.gameTickInterval = this.normalSpeed;  // 当前游戏速度
+        this.isSpeedUp = false;    // 是否处于加速状态
     }
 
     generateQRCode() {
@@ -466,7 +472,7 @@ class Game {
     }
 
     setupEventListeners() {
-        // 监听键盘事件
+        // 修改键盘事件监听
         document.addEventListener('keydown', (e) => {
             if (this.isPaused && e.key !== 'Escape') return;
             
@@ -474,30 +480,46 @@ class Game {
                 case 'ArrowUp':
                     if (this.snake.direction !== 'down') {
                         this.snake.nextDirection = 'up';
-                        e.preventDefault(); // 防止页面滚动
+                        this.gameTickInterval = this.fastSpeed;  // 加速
+                        this.isSpeedUp = true;
                     }
+                    e.preventDefault();
                     break;
                 case 'ArrowDown':
                     if (this.snake.direction !== 'up') {
                         this.snake.nextDirection = 'down';
-                        e.preventDefault();
+                        this.gameTickInterval = this.fastSpeed;  // 加速
+                        this.isSpeedUp = true;
                     }
+                    e.preventDefault();
                     break;
                 case 'ArrowLeft':
                     if (this.snake.direction !== 'right') {
                         this.snake.nextDirection = 'left';
-                        e.preventDefault();
+                        this.gameTickInterval = this.fastSpeed;  // 加速
+                        this.isSpeedUp = true;
                     }
+                    e.preventDefault();
                     break;
                 case 'ArrowRight':
                     if (this.snake.direction !== 'left') {
                         this.snake.nextDirection = 'right';
-                        e.preventDefault();
+                        this.gameTickInterval = this.fastSpeed;  // 加速
+                        this.isSpeedUp = true;
                     }
+                    e.preventDefault();
                     break;
                 case 'Escape':
                     this.togglePause();
                     break;
+            }
+        });
+
+        // 添加按键释放事件
+        document.addEventListener('keyup', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                this.gameTickInterval = this.normalSpeed;  // 恢复正常速度
+                this.isSpeedUp = false;
             }
         });
 
@@ -535,7 +557,7 @@ class Game {
 
     startGameLoop() {
         if (!this.gameLoopRunning) {
-            this.gameLoopRunning = true;
+        this.gameLoopRunning = true;
             this.lastTime = 0;  // 重置时间
             this.lastGameTick = 0;
             requestAnimationFrame((t) => this.gameLoop(t));
@@ -556,7 +578,7 @@ class Game {
 
         // 更新游戏逻辑
         if (!this.isPaused && deltaTime >= this.gameTickInterval) {
-            this.update();
+        this.update();
             this.lastGameTick = timestamp;
         }
 
@@ -683,8 +705,8 @@ class Game {
                 // 绘制蛇的部分
                 this.renderer.drawSprite(
                     texture,
-                    segment.x * this.gridSize,
-                    segment.y * this.gridSize,
+                segment.x * this.gridSize,
+                segment.y * this.gridSize,
                     this.gridSize,
                     this.gridSize,
                     angle
